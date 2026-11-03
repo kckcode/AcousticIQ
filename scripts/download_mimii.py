@@ -18,6 +18,15 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Optional, Any
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
+try:
+    from backend.app.core.config import settings
+    DEFAULT_RAW_DIR = settings.DATASET_RAW_DIR
+except Exception:
+    DEFAULT_RAW_DIR = BASE_DIR / "ml" / "data" / "raw" / "MIMII"
+
 # Official Zenodo Record 3384388 File Catalog & Approximate Sizes
 MIMII_ARCHIVES: Dict[str, Dict[str, Any]] = {
     "valve_6dB": {
@@ -90,17 +99,18 @@ def print_catalog():
     print("Authors: Harsh Purohit et al. (Hitachi, Ltd.)\n")
 
 
-def download_archive(archive_key: str, target_dir: Path, extract: bool = True):
+def download_archive(archive_key: str, raw_dir: Path, extract: bool = True):
     if archive_key not in MIMII_ARCHIVES:
         print(f"Error: Unknown archive key '{archive_key}'. Available: {list(MIMII_ARCHIVES.keys())}")
         return False
 
     item = MIMII_ARCHIVES[archive_key]
-    target_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = target_dir / item["file_name"]
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = raw_dir / item["file_name"]
 
     print(f"\n[MIMII Downloader] Preparing to download {item['file_name']} (~{item['size_gb']} GB)...")
     print(f"Destination: {zip_path}")
+    print(f"Target raw directory: {raw_dir}")
     print(f"URL: {item['url']}")
 
     headers = {
@@ -122,7 +132,7 @@ def download_archive(archive_key: str, target_dir: Path, extract: bool = True):
             total_size = int(total_size) + initial_bytes if total_size else None
 
             downloaded = initial_bytes
-            chunk_size = 1024 * 1024 # 1 MB chunks
+            chunk_size = 1024 * 1024  # 1 MB chunks
 
             with open(zip_path, mode) as f:
                 while True:
@@ -142,10 +152,10 @@ def download_archive(archive_key: str, target_dir: Path, extract: bool = True):
         print("\nDownload finished successfully.")
 
         if extract:
-            print(f"Extracting {zip_path} into {target_dir}...")
-            with zipfile.ZipFile(zip_path, "r") as z:
-                z.extractall(target_dir)
-            print("Extraction complete.")
+            print(f"Extracting {zip_path} into {raw_dir} (preserving category structure)...")
+            from scripts.extract_dataset import extract_archive
+            extract_archive(zip_path, raw_dir, machine_category=item["machine"])
+            print("Extraction and read-only preservation complete.")
 
         return True
     except Exception as e:
@@ -157,7 +167,8 @@ def main():
     parser = argparse.ArgumentParser(description="MIMII Dataset Downloader for AcousticIQ")
     parser.add_argument("--info", action="store_true", help="Print available MIMII archives and sizes")
     parser.add_argument("--archive", type=str, default="valve_6dB", help="Archive key to download (e.g. valve_6dB)")
-    parser.add_argument("--target-dir", type=str, default="ml/data/raw", help="Target download directory")
+    parser.add_argument("--raw-dir", type=str, default=str(DEFAULT_RAW_DIR), help="Destination raw dataset directory (default: ml/data/raw/MIMII)")
+    parser.add_argument("--target-dir", type=str, default=None, help="Alias for --raw-dir")
     parser.add_argument("--no-extract", action="store_true", help="Do not extract ZIP archive after download")
 
     args = parser.parse_args()
@@ -165,7 +176,8 @@ def main():
     if args.info:
         print_catalog()
     else:
-        download_archive(args.archive, Path(args.target_dir), extract=not args.no_extract)
+        dest_dir = Path(args.target_dir or args.raw_dir)
+        download_archive(args.archive, dest_dir, extract=not args.no_extract)
 
 
 if __name__ == "__main__":

@@ -110,11 +110,19 @@ The proposed architecture introduces:
 - **Adaptive Gating Network:** Takes Global Average Pooled vectors $(\bar{z}_{mel}, \bar{z}_{inv}) \in \mathbb{R}^{256}$ and computes dynamic gating weight $\alpha \in [0, 1]$ via a 2-layer MLP with Sigmoid activation.
 - **Weighted Loss:** $\mathcal{L}_{total} = \alpha \cdot \text{MSE}_{mel} + (1 - \alpha) \cdot \text{MSE}_{inv}$.
 
-## 13. Dataset Details and Official Source
+## 13. Dataset Details and Four-Tier Directory Architecture
 The primary benchmark dataset is the **MIMII Dataset** (*Sound Dataset for Malfunctioning Industrial Machine Investigation and Inspection*).
 - **Official Zenodo Record:** [https://zenodo.org/records/3384388](https://zenodo.org/records/3384388)
 - **Machine Categories:** Valves, Pumps, Fans, Slide Rails (Sliders).
 - **Audio Specifications:** 16-bit WAV, 16 kHz, 8-channel microphone array downmixed to mono, 10-second segments.
+
+### Four-Tier Dataset Organization:
+1. `ml/data/raw/MIMII/`: Original downloaded & extracted audio files organized by machine category (`valve`, `pump`, `fan`, `slider`). **Preserved as strictly read-only.**
+2. `ml/data/interim/`: Standardized intermediate audio (16 kHz, mono downmix, 10.0s window, normalized WAVs).
+3. `ml/data/processed/`: Compressed NumPy feature arrays (`.npz`) containing aligned `log_mel` and `inv_mel` representations.
+4. `ml/data/metadata/`: Dataset split manifests (`train_manifest.json`, `val_manifest.json`, `test_manifest.json`, `dataset_manifest.json`) and audit reports (`validation_report.json`). All raw datasets, interim files, and processed `.npz` arrays are protected under `.gitignore`.
+
+Paths are fully configurable via `.env` (`DATASET_RAW_DIR`, `DATASET_INTERIM_DIR`, `DATASET_PROCESSED_DIR`, `DATASET_METADATA_DIR`) for external storage.
 
 ## 14. Dataset License and Attribution Requirements
 - **License:** Creative Commons Attribution 4.0 International (CC BY 4.0).
@@ -142,6 +150,7 @@ AcousticIQ/
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── ml/                   # Machine learning core
+│   ├── data/             # Four-tier data structure (raw/MIMII, interim, processed, metadata)
 │   ├── preprocessing/    # Robust audio loader & validator
 │   ├── features/         # Log-Mel and Inverse-Mel feature extractors
 │   ├── models/           # PyTorch Baseline & Proposed Autoencoders
@@ -151,10 +160,13 @@ AcousticIQ/
 │   └── experiments/      # Saved experiment logs and publication figures
 ├── scripts/
 │   ├── download_mimii.py        # Resumable Zenodo dataset downloader
+│   ├── extract_dataset.py       # Archive extractor with read-only preservation
+│   ├── validate_dataset.py      # Audio integrity, decodability & hierarchy validator
+│   ├── preprocess_dataset.py    # Standardizer, dual feature extractor & manifest generator
 │   ├── train_and_evaluate.py    # Unified end-to-end training & evaluation pipeline
 │   └── train_all_categories.py  # Automation script for all 4 machine classes
 ├── docs/                 # Architecture, methodology, dataset, API, and setup docs
-├── tests/                # Automated pytest suite (19 passing tests)
+├── tests/                # Automated pytest suite (24 passing tests)
 ├── .github/workflows/    # CI pipeline for automated testing and build
 ├── docker-compose.yml    # Container orchestration
 ├── .env.example          # Environment configuration template

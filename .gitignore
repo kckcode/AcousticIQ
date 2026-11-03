@@ -46,10 +46,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Datasets, Raw Audio, and Heavy Checkpoints
-ml/data/raw/
+# Datasets, Raw Audio, Processed Features, and Heavy Artifacts
+ml/data/raw/*
+!ml/data/raw/MIMII/
+ml/data/raw/MIMII/*
+!ml/data/raw/MIMII/.gitkeep
+
+ml/data/interim/*
+!ml/data/interim/.gitkeep
+
+ml/data/processed/*
+!ml/data/processed/.gitkeep
+
+ml/data/metadata/*
+!ml/data/metadata/.gitkeep
+
 ml/data/extracted/
-ml/data/processed/
 ml/data/mimii/
 ml/data/cache/
 data/
@@ -58,6 +70,8 @@ data/
 *.flac
 *.tar.gz
 *.zip
+*.npz
+*.npy
 *.pt
 *.pth
 !ml/checkpoints/.gitkeep
@@ -76,3 +90,4 @@ coverage/
 *.swo
 .DS_Store
 Thumbs.db
+

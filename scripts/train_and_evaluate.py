@@ -25,6 +25,22 @@ import numpy as np
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
+try:
+    from backend.app.core.config import settings
+    DEFAULT_RAW_DIR = settings.DATASET_RAW_DIR
+    DEFAULT_INTERIM_DIR = settings.DATASET_INTERIM_DIR
+    DEFAULT_PROCESSED_DIR = settings.DATASET_PROCESSED_DIR
+    DEFAULT_METADATA_DIR = settings.DATASET_METADATA_DIR
+    DEFAULT_CHECKPOINT_DIR = settings.MODEL_REGISTRY_DIR
+    DEFAULT_EXPERIMENTS_DIR = settings.EXPERIMENTS_DIR
+except Exception:
+    DEFAULT_RAW_DIR = BASE_DIR / "ml" / "data" / "raw" / "MIMII"
+    DEFAULT_INTERIM_DIR = BASE_DIR / "ml" / "data" / "interim"
+    DEFAULT_PROCESSED_DIR = BASE_DIR / "ml" / "data" / "processed"
+    DEFAULT_METADATA_DIR = BASE_DIR / "ml" / "data" / "metadata"
+    DEFAULT_CHECKPOINT_DIR = BASE_DIR / "ml" / "checkpoints"
+    DEFAULT_EXPERIMENTS_DIR = BASE_DIR / "ml" / "experiments"
+
 from ml.preprocessing.audio import AudioPreprocessor, PreprocessingConfig
 from ml.features.extractor import DualFeatureExtractor, FeatureConfig
 from ml.models.autoencoder import BaselineConvolutionalAutoencoder, ProposedAdaptiveFusionAutoencoder
@@ -35,83 +51,165 @@ from ml.data.synthetic_fixture import generate_synthetic_machine_sound
 
 def prepare_dataset(
     machine_category: str,
-    data_dir: Path,
+    raw_dir: Optional[Path] = None,
+    processed_dir: Optional[Path] = None,
+    metadata_dir: Optional[Path] = None,
+    data_dir: Optional[Path] = None,
     use_synthetic_if_missing: bool = True,
     n_train_normal: int = 40,
     n_val_normal: int = 15,
     n_val_anomaly: int = 15,
     n_test_normal: int = 25,
     n_test_anomaly: int = 25,
-) -> Tuple[Dict[str, List[np.ndarray]], Dict[str, List[int]], bool]:
+) -> Tuple[Dict[str, Any], bool]:
     """
-    Loads real audio files if available in data_dir, otherwise generates controlled
-    calibration fixtures.
+    Prepares training, validation, and test datasets for machine_category.
+    Priority order:
+    1. Pre-extracted feature arrays (.npz) via split manifests in metadata_dir.
+    2. Raw audio recordings in raw_dir (or fallback data_dir).
+    3. Calibrated synthetic acoustic fixtures (when real audio has not yet been downloaded).
     """
-    preprocessor = AudioPreprocessor()
-    extractor = DualFeatureExtractor()
+    raw_dir = raw_dir or DEFAULT_RAW_DIR
+    processed_dir = processed_dir or DEFAULT_PROCESSED_DIR
+    metadata_dir = metadata_dir or DEFAULT_METADATA_DIR
 
-    real_normal_dir = data_dir / machine_category / "normal"
-    real_anomaly_dir = data_dir / machine_category / "anomaly"
-
-    is_synthetic = True
     train_mels, train_invs = [], []
     val_mels, val_invs, val_labels = [], [], []
     test_mels, test_invs, test_labels = [], [], []
 
-    # Check for genuine MIMII files
-    if real_normal_dir.exists() and any(real_normal_dir.glob("*.wav")):
-        print(f"[Dataset] Loading genuine audio recordings from {data_dir / machine_category}...")
-        is_synthetic = False
-        normal_files = sorted(list(real_normal_dir.glob("*.wav")))
-        anomaly_files = sorted(list(real_anomaly_dir.glob("*.wav"))) if real_anomaly_dir.exists() else []
+    # Priority 1: Check metadata manifests & processed .npz features
+    train_manifest = metadata_dir / "train_manifest.json"
+    val_manifest = metadata_dir / "val_manifest.json"
+    test_manifest = metadata_dir / "test_manifest.json"
 
-        # Split 60% train (normal only), 20% val, 20% test
-        n_norm = len(normal_files)
+    if train_manifest.exists() and val_manifest.exists() and test_manifest.exists():
+        try:
+            with open(train_manifest, "r", encoding="utf-8") as f:
+                tr_data = json.load(f)
+            with open(val_manifest, "r", encoding="utf-8") as f:
+                vl_data = json.load(f)
+            with open(test_manifest, "r", encoding="utf-8") as f:
+                ts_data = json.load(f)
+
+            tr_recs = [r for r in tr_data.get("records", []) if r.get("category") == machine_category]
+            vl_recs = [r for r in vl_data.get("records", []) if r.get("category") == machine_category]
+            ts_recs = [r for r in ts_data.get("records", []) if r.get("category") == machine_category]
+
+            if len(tr_recs) > 0 and len(ts_recs) > 0:
+                print(f"[Dataset] Loading processed feature tensors from {processed_dir} for {machine_category}...")
+                for r in tr_recs:
+                    npz = np.load(r["processed_path"])
+                    train_mels.append(npz["log_mel"])
+                    train_invs.append(npz["inv_mel"])
+
+                for r in vl_recs:
+                    npz = np.load(r["processed_path"])
+                    val_mels.append(npz["log_mel"])
+                    val_invs.append(npz["inv_mel"])
+                    val_labels.append(int(r.get("label", 0)))
+
+                for r in ts_recs:
+                    npz = np.load(r["processed_path"])
+                    test_mels.append(npz["log_mel"])
+                    test_invs.append(npz["inv_mel"])
+                    test_labels.append(int(r.get("label", 0)))
+
+                print(f"[Dataset] Successfully loaded manifests: Train={len(train_mels)}, Val={len(val_mels)}, Test={len(test_mels)}")
+                return {
+                    "train_mel": train_mels,
+                    "train_inv": train_invs,
+                    "val_mel": val_mels,
+                    "val_inv": val_invs,
+                    "val_labels": val_labels,
+                    "test_mel": test_mels,
+                    "test_inv": test_invs,
+                    "test_labels": test_labels,
+                }, False
+        except Exception as e:
+            print(f"[Dataset] Manifest loading encountered error ({e}), falling back to raw scan.")
+
+    # Priority 2: Check raw audio directory
+    search_dirs = [raw_dir / machine_category, raw_dir]
+    if data_dir:
+        search_dirs.insert(0, data_dir / machine_category)
+        search_dirs.insert(1, data_dir)
+
+    found_raw_normal = []
+    found_raw_anomaly = []
+    for sdir in search_dirs:
+        if sdir.exists():
+            for p in sdir.glob("**/*.wav"):
+                parts_lower = [part.lower() for part in p.parts]
+                if machine_category in parts_lower or sdir.name.lower() == machine_category:
+                    if "normal" in parts_lower:
+                        found_raw_normal.append(p)
+                    elif "anomaly" in parts_lower:
+                        found_raw_anomaly.append(p)
+
+    if len(found_raw_normal) >= 5:
+        print(f"[Dataset] Loading and extracting features from raw audio in {raw_dir}...")
+        preprocessor = AudioPreprocessor()
+        extractor = DualFeatureExtractor()
+
+        n_norm = len(found_raw_normal)
         n_tr = int(n_norm * 0.6)
         n_vl = int(n_norm * 0.2)
 
-        for p in normal_files[:n_tr]:
+        for p in found_raw_normal[:n_tr]:
             audio, _ = preprocessor.load_and_preprocess(p)
             mel, inv, _ = extractor.extract(audio)
             train_mels.append(mel)
             train_invs.append(inv)
 
-        for p in normal_files[n_tr:n_tr + n_vl]:
+        for p in found_raw_normal[n_tr:n_tr + n_vl]:
             audio, _ = preprocessor.load_and_preprocess(p)
             mel, inv, _ = extractor.extract(audio)
             val_mels.append(mel)
             val_invs.append(inv)
             val_labels.append(0)
 
-        for p in normal_files[n_tr + n_vl:]:
+        for p in found_raw_normal[n_tr + n_vl:]:
             audio, _ = preprocessor.load_and_preprocess(p)
             mel, inv, _ = extractor.extract(audio)
             test_mels.append(mel)
             test_invs.append(inv)
             test_labels.append(0)
 
-        # Split anomalies 50/50 between val and test
-        n_anom = len(anomaly_files)
+        n_anom = len(found_raw_anomaly)
         n_anom_val = n_anom // 2
-        for p in anomaly_files[:n_anom_val]:
+        for p in found_raw_anomaly[:n_anom_val]:
             audio, _ = preprocessor.load_and_preprocess(p)
             mel, inv, _ = extractor.extract(audio)
             val_mels.append(mel)
             val_invs.append(inv)
             val_labels.append(1)
 
-        for p in anomaly_files[n_anom_val:]:
+        for p in found_raw_anomaly[n_anom_val:]:
             audio, _ = preprocessor.load_and_preprocess(p)
             mel, inv, _ = extractor.extract(audio)
             test_mels.append(mel)
             test_invs.append(inv)
             test_labels.append(1)
 
-    elif use_synthetic_if_missing:
-        print(f"[Dataset] Real MIMII audio not found in {data_dir / machine_category}.")
+        return {
+            "train_mel": train_mels,
+            "train_inv": train_invs,
+            "val_mel": val_mels,
+            "val_inv": val_invs,
+            "val_labels": val_labels,
+            "test_mel": test_mels,
+            "test_inv": test_invs,
+            "test_labels": test_labels,
+        }, False
+
+    # Priority 3: Fall back to calibrated synthetic fixtures
+    if use_synthetic_if_missing:
+        print(f"[Dataset] Genuine MIMII audio not found in {raw_dir}.")
         print(f"[Dataset] Generating calibrated multi-condition synthetic dataset ({machine_category})...")
         print("  NOTE: Explicitly marked as synthetic fixtures for testing & verification.")
-        
+
+        extractor = DualFeatureExtractor()
+
         # Normal training recordings
         for i in range(n_train_normal):
             audio, _ = generate_synthetic_machine_sound(machine_category, is_anomaly=False, seed=1000 + i)
@@ -159,22 +257,32 @@ def prepare_dataset(
         "test_inv": test_invs,
         "test_labels": test_labels,
     }
-    return data, is_synthetic
+    return data, True
 
 
 def run_experiment(
     machine_category: str = "valve",
     epochs: int = 20,
     batch_size: int = 16,
-    data_dir: Path = BASE_DIR / "ml" / "data",
-    checkpoint_dir: Path = BASE_DIR / "ml" / "checkpoints",
-    experiments_dir: Path = BASE_DIR / "ml" / "experiments",
+    raw_dir: Path = DEFAULT_RAW_DIR,
+    interim_dir: Path = DEFAULT_INTERIM_DIR,
+    processed_dir: Path = DEFAULT_PROCESSED_DIR,
+    metadata_dir: Path = DEFAULT_METADATA_DIR,
+    checkpoint_dir: Path = DEFAULT_CHECKPOINT_DIR,
+    experiments_dir: Path = DEFAULT_EXPERIMENTS_DIR,
+    data_dir: Optional[Path] = None,
 ):
     print(f"\n========================================================")
     print(f" AcousticIQ Training & Evaluation Pipeline: {machine_category.upper()}")
     print(f"========================================================")
 
-    data, is_synthetic = prepare_dataset(machine_category, data_dir)
+    data, is_synthetic = prepare_dataset(
+        machine_category=machine_category,
+        raw_dir=raw_dir,
+        processed_dir=processed_dir,
+        metadata_dir=metadata_dir,
+        data_dir=data_dir,
+    )
     print(f"Dataset split: Train={len(data['train_mel'])}, Val={len(data['val_mel'])}, Test={len(data['test_mel'])}")
     print(f"Synthetic data status: {is_synthetic}")
 
@@ -312,14 +420,28 @@ def run_experiment(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Train and evaluate AcousticIQ models")
     parser.add_argument("--machine", type=str, default="valve", choices=["valve", "pump", "fan", "slider"])
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--raw-dir", type=str, default=str(DEFAULT_RAW_DIR), help="Path to raw recordings")
+    parser.add_argument("--interim-dir", type=str, default=str(DEFAULT_INTERIM_DIR), help="Path to interim standardized audio")
+    parser.add_argument("--processed-dir", type=str, default=str(DEFAULT_PROCESSED_DIR), help="Path to processed feature tensors")
+    parser.add_argument("--metadata-dir", type=str, default=str(DEFAULT_METADATA_DIR), help="Path to metadata manifests")
+    parser.add_argument("--checkpoint-dir", type=str, default=str(DEFAULT_CHECKPOINT_DIR), help="Checkpoint directory")
+    parser.add_argument("--experiments-dir", type=str, default=str(DEFAULT_EXPERIMENTS_DIR), help="Experiments output directory")
+
     args = parser.parse_args()
 
     run_experiment(
         machine_category=args.machine,
         epochs=args.epochs,
         batch_size=args.batch_size,
+        raw_dir=Path(args.raw_dir),
+        interim_dir=Path(args.interim_dir),
+        processed_dir=Path(args.processed_dir),
+        metadata_dir=Path(args.metadata_dir),
+        checkpoint_dir=Path(args.checkpoint_dir),
+        experiments_dir=Path(args.experiments_dir),
     )
+

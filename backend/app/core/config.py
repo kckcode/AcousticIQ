@@ -27,9 +27,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
-    # Directories
+    # Directories (fully configurable for local and external storage)
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
     DATASET_DIR: Path = BASE_DIR / "ml" / "data"
+    DATASET_RAW_DIR: Path = BASE_DIR / "ml" / "data" / "raw" / "MIMII"
+    DATASET_INTERIM_DIR: Path = BASE_DIR / "ml" / "data" / "interim"
+    DATASET_PROCESSED_DIR: Path = BASE_DIR / "ml" / "data" / "processed"
+    DATASET_METADATA_DIR: Path = BASE_DIR / "ml" / "data" / "metadata"
     MODEL_REGISTRY_DIR: Path = BASE_DIR / "ml" / "checkpoints"
     EXPERIMENTS_DIR: Path = BASE_DIR / "ml" / "experiments"
     UPLOAD_DIR: Path = BASE_DIR / "backend" / "uploads"
@@ -66,3 +70,8 @@ settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 settings.MODEL_REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
 settings.EXPERIMENTS_DIR.mkdir(parents=True, exist_ok=True)
 settings.DATASET_DIR.mkdir(parents=True, exist_ok=True)
+settings.DATASET_RAW_DIR.mkdir(parents=True, exist_ok=True)
+settings.DATASET_INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+settings.DATASET_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+settings.DATASET_METADATA_DIR.mkdir(parents=True, exist_ok=True)
+
