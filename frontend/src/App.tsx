@@ -8,7 +8,7 @@ import { ModelLabPage } from './pages/ModelLabPage';
 import { ExperimentPage } from './pages/ExperimentPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { fetchHealth, fetchMachines, fetchHistory, fetchMetrics } from './services/api';
-import { HealthResponse, MachineCategory, AnalysisHistoryItem, ExperimentSummary } from './types';
+import { HealthResponse, MachineCategory, AnalysisHistoryItem, ExperimentSummary, PreloadedSample } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -20,6 +20,7 @@ export const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [latestExperiment, setLatestExperiment] = useState<ExperimentSummary | undefined>(undefined);
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean>(false);
+  const [selectedSample, setSelectedSample] = useState<PreloadedSample | null>(null);
 
   const loadInitialData = async () => {
     try {
@@ -67,6 +68,11 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleSelectSampleFromOverview = (sample: PreloadedSample) => {
+    setSelectedSample(sample);
+    setActiveTab('analysis');
+  };
+
   return (
     <div className="min-h-screen bg-industrial-950 flex flex-col">
       <Navbar
@@ -83,12 +89,16 @@ export const App: React.FC = () => {
             machines={machines}
             latestExperiment={latestExperiment}
             onNavigate={setActiveTab}
-            onSelectSample={() => setActiveTab('analysis')}
+            onSelectSample={handleSelectSampleFromOverview}
           />
         )}
 
         {activeTab === 'analysis' && (
-          <AnalysisPage onAnalysisComplete={handleAnalysisComplete} />
+          <AnalysisPage
+            onAnalysisComplete={handleAnalysisComplete}
+            initialSample={selectedSample}
+            onClearInitialSample={() => setSelectedSample(null)}
+          />
         )}
 
         {activeTab === 'monitoring' && (

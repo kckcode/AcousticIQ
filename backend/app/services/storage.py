@@ -13,7 +13,7 @@ from backend.app.core.config import settings
 
 
 class StorageService:
-    ALLOWED_EXTENSIONS = {".wav"}
+    ALLOWED_EXTENSIONS = {".wav", ".mp3", ".flac"}
     MAX_FILE_SIZE = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024  # bytes
 
     @staticmethod
@@ -39,7 +39,7 @@ class StorageService:
         if ext not in cls.ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported file format '{ext}'. Only standard uncompressed WAV files (.wav) are accepted."
+                detail=f"Unsupported file format '{ext}'. Allowed formats: .wav, .mp3, .flac."
             )
 
         unique_id = uuid.uuid4().hex
@@ -51,7 +51,7 @@ class StorageService:
         try:
             with open(dest_path, "wb") as out_file:
                 while True:
-                    chunk = await upload_file.read(1024 * 64) # 64KB
+                    chunk = await upload_file.read(1024 * 64)  # 64KB
                     if not chunk:
                         break
                     size_read += len(chunk)

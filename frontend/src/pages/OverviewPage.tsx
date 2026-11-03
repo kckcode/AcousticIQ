@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   CheckCircle2, 
@@ -6,19 +6,22 @@ import {
   Cpu, 
   Layers, 
   ArrowRight, 
-  Clock, 
   Database,
-  ShieldCheck 
+  ShieldCheck,
+  Play,
+  FileAudio,
+  Sparkles
 } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
-import { MachineCategory, AnalysisHistoryItem, ExperimentSummary } from '../types';
+import { MachineCategory, AnalysisHistoryItem, ExperimentSummary, PreloadedSample } from '../types';
+import { fetchSamples } from '../services/api';
 
 interface OverviewPageProps {
   history: AnalysisHistoryItem[];
   machines: MachineCategory[];
   latestExperiment?: ExperimentSummary;
   onNavigate: (tab: string) => void;
-  onSelectSample: (filename: string) => void;
+  onSelectSample: (sample: PreloadedSample) => void;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
@@ -26,11 +29,28 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   machines,
   latestExperiment,
   onNavigate,
+  onSelectSample,
 }) => {
+  const [samples, setSamples] = useState<PreloadedSample[]>([]);
   const totalAnalyses = history.length;
   const normalCount = history.filter((h) => !h.is_anomaly).length;
   const anomalyCount = history.filter((h) => h.is_anomaly).length;
   const modelsReadyCount = machines.filter((m) => m.trained_model_available).length;
+
+  useEffect(() => {
+    fetchSamples().then((s) => setSamples(s)).catch(() => {});
+  }, []);
+
+  const sampleDescriptions: Record<string, string> = {
+    synthetic_valve_normal: 'Clean solenoid stroke & pneumatic seal (Nominal baseline)',
+    synthetic_valve_anomaly: 'High-frequency acoustic leak hiss & valve chatter',
+    synthetic_pump_normal: 'Centrifugal motor hum & 50Hz harmonics (Stable operation)',
+    synthetic_pump_anomaly: 'Impeller cavitation bursts & bearing race spall',
+    synthetic_fan_normal: 'Aerodynamic blade pass frequency (BPF) & smooth turbulence',
+    synthetic_fan_anomaly: 'Blade stall, airflow blockage & structural flutter',
+    synthetic_slider_normal: 'Linear slide reciprocation & smooth lubrication glide',
+    synthetic_slider_anomaly: 'Mechanical rail friction squeal, scoring & stick-slip',
+  };
 
   return (
     <div className="space-y-6">
@@ -103,6 +123,74 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           badge="TRAINED"
           badgeColor="emerald"
         />
+      </div>
+
+      {/* BUILT-IN REFERENCE RECORDINGS (1-CLICK EVALUATION) */}
+      <div className="bg-industrial-900 border border-industrial-800 rounded-lg p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+            <div>
+              <h2 className="text-sm font-mono font-bold text-white uppercase tracking-wider">
+                Built-in Acoustic Reference Samples (1-Click Test)
+              </h2>
+              <p className="text-xs text-slate-400">
+                Click any preloaded recording to load its waveform and run real-time inference in the Model Lab.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-1 rounded bg-industrial-950 border border-industrial-800 text-slate-400">
+            Files in workspace: <span className="text-blue-400 font-bold">samples/</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {samples.map((s) => {
+            const stem = s.filename.replace('.wav', '');
+            const desc = sampleDescriptions[stem] || 'Industrial machine recording sample';
+            const isAnomaly = s.label === 'anomaly';
+
+            return (
+              <div
+                key={s.filename}
+                className="bg-industrial-950 border border-industrial-800 hover:border-blue-500/50 rounded-lg p-3.5 transition-all flex flex-col justify-between group"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-white uppercase tracking-wide">
+                      {s.machine_category}
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-bold ${
+                        isAnomaly
+                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      }`}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    {desc}
+                  </p>
+                </div>
+
+                <div className="pt-3 mt-2 border-t border-industrial-850 flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-slate-500 truncate max-w-[120px]">
+                    {s.filename}
+                  </span>
+                  <button
+                    onClick={() => onSelectSample(s)}
+                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 text-xs font-mono border border-blue-500/30 transition-colors"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Test in Lab</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Industrial Machine Categories Fleet Status */}
@@ -189,7 +277,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 </div>
 
                 <div className="p-3 bg-industrial-950 rounded border border-industrial-800 text-center">
-                  <div className="text-[11px] font-mono text-slate-400">Proposed Adaptive Fusion F1</div>
+                  <div className="text-[11px] font-mono text-slate-400">Proposed Fusion F1</div>
                   <div className="text-xl font-bold font-mono text-emerald-400">
                     {(latestExperiment.proposed.f1_score * 100).toFixed(1)}%
                   </div>
