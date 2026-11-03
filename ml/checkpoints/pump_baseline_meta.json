@@ -1,0 +1,24 @@
+{
+  "model_type": "baseline",
+  "architecture": "BaselineConvolutionalAutoencoder",
+  "machine_category": "pump",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\pump_baseline_ae.pt",
+  "threshold": 0.058904339000582694,
+  "final_train_loss": 0.04579,
+  "training_duration_seconds": 2.87,
+  "history": {
+    "train_loss": [
+      1.159559,
+      0.317128,
+      0.156058,
+      0.094232,
+      0.075673,
+      0.0663,
+      0.061523,
+      0.055839,
+      0.049954,
+      0.04579
+    ]
+  },
+  "parameter_count": 185857
+}

@@ -1,0 +1,24 @@
+{
+  "model_type": "baseline",
+  "architecture": "BaselineConvolutionalAutoencoder",
+  "machine_category": "fan",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\fan_baseline_ae.pt",
+  "threshold": 0.04918293990194798,
+  "final_train_loss": 0.040965,
+  "training_duration_seconds": 2.93,
+  "history": {
+    "train_loss": [
+      1.170823,
+      0.274701,
+      0.135708,
+      0.081843,
+      0.061914,
+      0.05589,
+      0.051743,
+      0.048274,
+      0.044997,
+      0.040965
+    ]
+  },
+  "parameter_count": 185857
+}

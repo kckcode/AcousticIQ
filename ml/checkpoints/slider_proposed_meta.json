@@ -1,0 +1,37 @@
+{
+  "model_type": "proposed",
+  "architecture": "ProposedAdaptiveFusionAutoencoder",
+  "machine_category": "slider",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\slider_proposed_fusion.pt",
+  "threshold": 0.11801052466034889,
+  "final_train_loss": 0.109609,
+  "final_mean_alpha": 0.9335,
+  "training_duration_seconds": 5.64,
+  "history": {
+    "train_loss": [
+      1.362449,
+      0.429301,
+      0.265749,
+      0.196811,
+      0.163111,
+      0.142973,
+      0.130353,
+      0.121303,
+      0.114802,
+      0.109609
+    ],
+    "mean_alpha": [
+      0.5834,
+      0.675,
+      0.748,
+      0.8068,
+      0.8493,
+      0.8783,
+      0.8987,
+      0.9137,
+      0.925,
+      0.9335
+    ]
+  },
+  "parameter_count": 388227
+}

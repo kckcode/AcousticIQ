@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: acousticiq-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:////app/data/acousticiq.db
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+      - MODEL_REGISTRY_DIR=/app/ml/checkpoints
+      - EXPERIMENTS_DIR=/app/ml/experiments
+      - DATASET_DIR=/app/ml/data
+    volumes:
+      - ./backend/data:/app/data
+      - ./ml/checkpoints:/app/ml/checkpoints
+      - ./ml/experiments:/app/ml/experiments
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: acousticiq-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

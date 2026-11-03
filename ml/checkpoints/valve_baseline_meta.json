@@ -1,0 +1,24 @@
+{
+  "model_type": "baseline",
+  "architecture": "BaselineConvolutionalAutoencoder",
+  "machine_category": "valve",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\valve_baseline_ae.pt",
+  "threshold": 0.08278298676013947,
+  "final_train_loss": 0.07806,
+  "training_duration_seconds": 2.82,
+  "history": {
+    "train_loss": [
+      1.297026,
+      0.415236,
+      0.225392,
+      0.151726,
+      0.117885,
+      0.104527,
+      0.095753,
+      0.088565,
+      0.083357,
+      0.07806
+    ]
+  },
+  "parameter_count": 185857
+}

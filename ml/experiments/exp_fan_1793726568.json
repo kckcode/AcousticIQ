@@ -1,0 +1,91 @@
+{
+  "experiment_id": "exp_fan_1793726568",
+  "timestamp": "2026-11-03T17:22:49Z",
+  "machine_category": "fan",
+  "is_synthetic": true,
+  "dataset_subset": "Synthetic Multi-Condition Calibration",
+  "fusion_mechanism": "Adaptive Latent Gating Network (Sigmoid)",
+  "epochs": 10,
+  "batch_size": 16,
+  "baseline": {
+    "model_name": "Baseline Convolutional Autoencoder",
+    "roc_auc": 1.0,
+    "p_auc": 1.0,
+    "precision": 0.9259,
+    "recall": 1.0,
+    "f1_score": 0.9615,
+    "false_positive_rate": 0.08,
+    "decision_threshold": 0.049183,
+    "confusion_matrix": [
+      [
+        23,
+        2
+      ],
+      [
+        0,
+        25
+      ]
+    ],
+    "total_test_samples": 50,
+    "normal_test_samples": 25,
+    "anomaly_test_samples": 25,
+    "mean_inference_latency_ms": 4.81,
+    "fpr_curve": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "tpr_curve": [
+      0.0,
+      0.04,
+      1.0,
+      1.0
+    ]
+  },
+  "proposed": {
+    "model_name": "Proposed Adaptive Feature Fusion Autoencoder",
+    "roc_auc": 1.0,
+    "p_auc": 1.0,
+    "precision": 0.9259,
+    "recall": 1.0,
+    "f1_score": 0.9615,
+    "false_positive_rate": 0.08,
+    "decision_threshold": 0.045666,
+    "confusion_matrix": [
+      [
+        23,
+        2
+      ],
+      [
+        0,
+        25
+      ]
+    ],
+    "total_test_samples": 50,
+    "normal_test_samples": 25,
+    "anomaly_test_samples": 25,
+    "mean_inference_latency_ms": 10.1,
+    "fpr_curve": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "tpr_curve": [
+      0.0,
+      0.04,
+      1.0,
+      1.0
+    ]
+  },
+  "relative_improvement_auc": 0.0,
+  "relative_improvement_pauc": 0.0,
+  "figures": {
+    "roc_curve": "D:\\Deep Learning\\ml\\experiments\\exp_fan_1793726568_roc_curve.png",
+    "metrics_bar": "D:\\Deep Learning\\ml\\experiments\\exp_fan_1793726568_metrics_comparison.png",
+    "loss_curves": "D:\\Deep Learning\\ml\\experiments\\exp_fan_1793726568_loss_curves.png"
+  },
+  "status": "completed",
+  "notes": "Fair evaluation on identical held-out test split. Threshold selected on validation split."
+}

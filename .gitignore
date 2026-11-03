@@ -1,0 +1,78 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments & Virtual Environments
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+.npm
+frontend/dist/
+frontend/.next/
+frontend/out/
+
+# Database & Logs
+*.sqlite3
+*.db
+backend/*.db
+backend/app/*.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Datasets, Raw Audio, and Heavy Checkpoints
+ml/data/raw/
+ml/data/extracted/
+ml/data/processed/
+ml/data/mimii/
+ml/data/cache/
+data/
+*.wav
+*.mp3
+*.flac
+*.tar.gz
+*.zip
+*.pt
+*.pth
+!ml/checkpoints/.gitkeep
+!ml/checkpoints/*.json
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+{
+  "model_type": "proposed",
+  "architecture": "ProposedAdaptiveFusionAutoencoder",
+  "machine_category": "pump",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\pump_proposed_fusion.pt",
+  "threshold": 0.053776922449469564,
+  "final_train_loss": 0.046745,
+  "final_mean_alpha": 0.9555,
+  "training_duration_seconds": 6.08,
+  "history": {
+    "train_loss": [
+      1.422834,
+      0.358596,
+      0.182345,
+      0.124956,
+      0.092857,
+      0.074479,
+      0.063414,
+      0.056876,
+      0.051003,
+      0.046745
+    ],
+    "mean_alpha": [
+      0.587,
+      0.6753,
+      0.7441,
+      0.8017,
+      0.8468,
+      0.8812,
+      0.9076,
+      0.928,
+      0.9436,
+      0.9555
+    ]
+  },
+  "parameter_count": 388227
+}

@@ -1,0 +1,24 @@
+{
+  "model_type": "baseline",
+  "architecture": "BaselineConvolutionalAutoencoder",
+  "machine_category": "slider",
+  "checkpoint_path": "D:\\Deep Learning\\ml\\checkpoints\\slider_baseline_ae.pt",
+  "threshold": 0.12584275454282762,
+  "final_train_loss": 0.117436,
+  "training_duration_seconds": 2.61,
+  "history": {
+    "train_loss": [
+      1.366622,
+      0.483651,
+      0.285669,
+      0.208711,
+      0.170175,
+      0.151454,
+      0.140811,
+      0.132206,
+      0.12464,
+      0.117436
+    ]
+  },
+  "parameter_count": 185857
+}
